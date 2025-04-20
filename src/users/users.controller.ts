@@ -1,8 +1,9 @@
-import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, Get, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtAuthService } from './jwt.service';
+import { GetUsersDto } from './dto/get-users.dto';
 
 @Controller('users')
 export class UsersController {
@@ -42,6 +43,28 @@ export class UsersController {
                 email: user.email,
                 firstName: user.firstName,
                 lastName: user.lastName
+            }
+        };
+    }
+
+    @Get('allUsers')
+    async getAllUser(@Query() query: GetUsersDto) {
+        const { users, total } = await this.usersService.findAll(query);
+
+        return {
+            data: users.map(user => ({
+                id: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                isActive: user.isActive,
+                createdAt: user.createdAt
+            })),
+            meta: {
+                total,
+                page: query.page,
+                limit: query.limit,
+                totalPages: Math.ceil(total / (query.limit || 10))
             }
         };
     }
