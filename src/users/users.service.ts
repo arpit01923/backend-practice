@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
+import { GetUsersDto } from './dto/get-users.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -45,5 +46,32 @@ export class UsersService {
         }
 
         return user;
+    }
+
+    async findAll(query: GetUsersDto): Promise<{ users: User[]; total: number }> {
+        const { search, page = 1, limit = 10 } = query;
+        const skip = (page - 1) * limit;
+
+        let filter = {};
+        if (search) {
+            filter = {
+                $or: [
+                    { firstName: { $regex: search, $options: 'i' } },
+                    { lastName: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ],
+            };
+        }
+
+        const [users, total] = await Promise.all([
+            this.userModel
+                .find(filter)
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 })
+                .exec(),
+            this.userModel.countDocuments(filter)
+        ]);
+        return { users, total };
     }
 } 
